@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>NeutralinoJs sample app</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="js/papaparse.min.js"></script>
+</head>
+
+<body>
+  <div id="app">
+    <select id="aircraft">
+      <option>Random Aircraft</option>
+    </select>
+    <label for="maxTime">Desired Flight Time (min):</label>
+    <input id="maxTime" type="number">
+    <div id="continents">
+      <label>All Continents:</label>
+      <input id="toggleAllContinents" onclick="toggleAllCheckboxes()" type="checkbox" checked>
+    </div>
+    <select id="numOfConnections">
+    </select>
+    <label for="smallAirport">Small Airports:</label>
+    <input id="smallAirport" type="checkbox">
+    <label for="mediumAirport">Medium Airports:</label>
+    <input id="mediumAirport" type="checkbox" checked>
+    <label for="largeAirport">Large Airports:</label>
+    <input id="largeAirport" type="checkbox" checked>
+    <label for="largeAirport">Departing Airport:</label>
+    <input id="selectedDeparture" type="text">
+    <label for="largeAirport">Arriving Airport:</label>
+    <input id="selectedArrival" type="text">
+    <input type="submit" onclick="generateFlightPlan()">
+  </div>
+  <script src="js/neutralino.js"></script>
+  <script src="js/main.js"></script>
+  <script src="js/app.js"></script>
+</body>
+
+</html>
