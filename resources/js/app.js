@@ -67,8 +67,22 @@ function submit() {
     const selectedAircraft = getAircraft(document.getElementById('aircraft').value);
     const connections = document.getElementById('numOfConnections').value;
 
+    //filters
+    const smallAirports = document.getElementById('smallAirport').checked;
+    const mediumAirports = document.getElementById('mediumAirport').checked;
+    const largeAirports = document.getElementById('largeAirport').checked;
+    const closedAirports = document.getElementById('largeAirport').checked;
+    const heliports = document.getElementById('largeAirport').checked;
+
+    var filters = [smallAirports, mediumAirports, largeAirports, closedAirports, heliports];
+
     //optional inputs
-    const selectedDeparture = getAirportDataByICAO(document.getElementById('selectedDeparture').value);
+    const selectedDeparture = getAirportData(document.getElementById('selectedDeparture').value);
+    const selectedArrival = getAirportData(document.getElementById('selectedArrival').value);
+
+    if (selectedArrival == null && selectedDeparture == null) {
+        selectedDeparture == getRandomAirport(filters, airports);
+    }
 
     //calculates the estimated flight distance from the desired flight time
     const estimatedFlightDistance = (desiredFlightTime / 60) * selectedAircraft.cruiseSpeed;
@@ -83,8 +97,13 @@ function submit() {
     var fails = 0;
 
     while (flightplans.length < MAX_NUM_OF_FLIGHTPLANS && fails < 10) {
-        console.log("Generating a flight plan from " + selectedDeparture[3] + ", with a desired flight time of " + desiredFlightTime + " minutes (" + estimatedFlightDistance + " NM), with " + connections + " connections, using " + selectedAircraft.name);
-        const flightPlan = generateFlightPlan(selectedDeparture, connections, estimatedFlightDistance);
+        if (selectedDeparture != null && selectedArrival == null) {
+            console.log("Generating a flight plan from " + selectedDeparture[3] + ", with a desired flight time of " + desiredFlightTime + " minutes (" + estimatedFlightDistance + " NM), with " + connections + " connections, using " + selectedAircraft.name);
+        }
+        else if (selectedDeparture == null && selectedArrival != null) {
+            console.log("Generating a flight plan to " + selectedArrival[3] + ", with a desired flight time of " + desiredFlightTime + " minutes (" + estimatedFlightDistance + " NM), with " + connections + " connections, using " + selectedAircraft.name);
+        }
+        const flightPlan = generateFlightPlan(selectedDeparture, selectedArrival, connections, estimatedFlightDistance, filters);
 
         //validate flightplans
         if (flightPlan.indexOf(flightPlan) > -1) {
@@ -96,24 +115,51 @@ function submit() {
     }
 }
 
-function generateFlightPlan(_departingAirport, _connections, _efd) {
+function generateFlightPlan(_departingAirport, _arrivingAirport, _connections, _efd, filters) {
 
     var flightplan = [];
 
-    flightplan.push(_departingAirport);
 
-    //get airports in range of departing airport
-    var airportsInRange = getAirportsInRange(_departingAirport, _efd);
-
-    //if connections = 0 then should just randomly pick from the top airports that fit in the threshold
-    if (_connections == 0) {
-        flightplan.push(getRandomAirportThreshold(airportsInRange, _efd, _departingAirport));
+    if (_departingAirport != null && _arrivingAirport != null && _connections == 0) {
+        flightplan.push(_arrivingAirport);
     }
-    else {
-        //loop by nunmber of connections
-        for (var j = 1; j <= _connections; j++) {
-            flightplan = recursiveFunction(_efd, flightplan, airportsInRange);
+    else if (_departingAirport != null && _arrivingAirport != null && _connections > 0) {
+        //generate airports between the 2 airports
+    }
+    else if (_departingAirport != null && _arrivingAirport == null) {
+        flightplan.push(_departingAirport);
+
+        //get airports in range of departing airport
+        var airportsInRange = getAirportsInRange(_departingAirport, _efd, filters);
+
+        //if connections = 0 then should just randomly pick from the top airports that fit in the threshold
+        if (_connections == 0) {
+            flightplan.push(getRandomAirportThreshold(airportsInRange, _efd, _departingAirport));
         }
+        else {
+            //loop by nunmber of connections
+            for (var j = 1; j <= _connections; j++) {
+                flightplan = recursiveFunction(_efd, flightplan, airportsInRange, false, filters);
+            }
+        }
+    }
+    else if (_departingAirport == null && _arrivingAirport != null) {
+
+        //get airports in range of departing airport
+        var airportsInRange = getAirportsInRange(_arrivingAirport, _efd, filters);
+
+        //if connections = 0 then should just randomly pick from the top airports that fit in the threshold
+        if (_connections == 0) {
+            flightplan.push(getRandomAirportThreshold(airportsInRange, _efd, _arrivingAirport));
+        }
+        else {
+            //loop by nunmber of connections
+            for (var j = 1; j <= _connections; j++) {
+                flightplan = recursiveFunction(_efd, flightplan, airportsInRange, true, filters);
+            }
+        }
+
+        flightplan.push(_arrivingAirport);
     }
 
     console.log(flightplan);
@@ -121,7 +167,7 @@ function generateFlightPlan(_departingAirport, _connections, _efd) {
     return flightplan;
 }
 
-function recursiveFunction(_distance, _flightplan, _airports) {
+function recursiveFunction(_distance, _flightplan, _airports, _shouldReverse, filters) {
     if (_distance > 0 && _airports.length > 0) {
         //selects a random airport
         var airportToAdd;
@@ -141,8 +187,12 @@ function recursiveFunction(_distance, _flightplan, _airports) {
             _distance = _distance - dist;
 
             //adds the selected airport to the flight
-            _flightplan.push(airportToAdd);
-
+            if (!_shouldReverse) {
+                _flightplan.push(airportToAdd);
+            }
+            else {
+                _flightplan.unshift(airportToAdd);
+            }
             //removes the selected airport from the array to prevent selecting duplicates
             const index = _airports.indexOf(airportToAdd);
             if (index > -1) {
@@ -151,7 +201,7 @@ function recursiveFunction(_distance, _flightplan, _airports) {
 
 
             //updates the airport list so that they are now airports within distance to the selected airport
-            _airports = getAirportsInRange(_flightplan[_flightplan.length - 1], _distance);
+            _airports = getAirportsInRange(_flightplan[_flightplan.length - 1], _distance, filters);
             for (var i = 0; i < _flightplan.length; i++) {
                 const indexToRemove = _airports.indexOf(_flightplan[i]);
                 if (indexToRemove > -1) {
@@ -159,7 +209,7 @@ function recursiveFunction(_distance, _flightplan, _airports) {
                 }
             }
 
-            return recursiveFunction(_distance, _flightplan, _airports);
+            return recursiveFunction(_distance, _flightplan, _airports, _shouldReverse);
         }
         else {
             var err = "Failed to continue generating flightplans because: ";
@@ -196,24 +246,20 @@ function getAircraft(value) {
     return _aircraft;
 }
 
-function getAirportDataByICAO(icao) {
+function getAirportData(input) {
     var airport;
-    if (icao != "") {
+    if (input != "") {
 
         airports.forEach((item) => {
-            if (item[1] == icao) {
+            if (item[1] == input || item[3] == input) {
                 airport = item;
             }
         });
 
         if (airport == undefined) {
-            console.error("Invalid ICAO!");
+            console.error("Invalid input!");
         }
     }
-    else {
-        airport = getRandomAirport(airports);
-    }
-
 
     return airport;
 }
@@ -222,13 +268,19 @@ function getRandomAircraft() {
     return aircraft[Math.floor(Math.random() * aircraft.length)];
 }
 
-function getAirportsInRange(_airport, _range) {
+function getAirportsInRange(_airport, _range, filters) {
     var airportsInRange = [];
 
     airports.forEach((item) => {
         const dist = getDistance(_airport, item);
-        if (dist <= _range && item != _airport) {
-            airportsInRange.push(item);
+        if ((filters[0] == true && item[2] === "small_airport") ||
+            (filters[1] == true && item[2] === "medium_airport") ||
+            (filters[2] == true && item[2] === "large_airport") ||
+            (filters[3] == true && item[2] === "closed_airport") ||
+            (filters[4] == true && item[2] === "heliport")) {
+            if (dist <= _range && item != _airport) {
+                airportsInRange.push(item);
+            }
         }
     });
 
@@ -261,8 +313,20 @@ function getDistance(_airport1, _airport2) {
     return (d / 1852); // in nautical miles
 }
 
-function getRandomAirport(_airports) {
-    return _airports[Math.floor(Math.random() * _airports.length)];
+function getRandomAirport(filters, _airports) {
+    var filteredAirports = [];
+
+    _airports.forEach((item) => {
+        if ((filters[0] == true && item[2] === "small_airport") ||
+            (filters[1] == true && item[2] === "medium_airport") ||
+            (filters[2] == true && item[2] === "large_airport") ||
+            (filters[3] == true && item[2] === "closed_airport") ||
+            (filters[4] == true && item[2] === "heliport")) {
+            filteredAirports.push(item);
+        }
+    });
+
+    return filteredAirports[Math.floor(Math.random() * filteredAirports.length)];
 }
 
 function getRandomAirportThreshold(_airports, _range, _airport) {
