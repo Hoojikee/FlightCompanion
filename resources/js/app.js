@@ -103,6 +103,7 @@ function submit() {
         else if (selectedDeparture == null && selectedArrival != null) {
             console.log("Generating a flight plan to " + selectedArrival[3] + ", with a desired flight time of " + desiredFlightTime + " minutes (" + estimatedFlightDistance + " NM), with " + connections + " connections, using " + selectedAircraft.name);
         }
+
         const flightPlan = generateFlightPlan(selectedDeparture, selectedArrival, connections, estimatedFlightDistance, filters);
 
         //validate flightplans
@@ -198,7 +199,6 @@ function recursiveFunction(_distance, _flightplan, _airports, _shouldReverse, fi
             if (index > -1) {
                 _airports.splice(index, 1);
             }
-
 
             //updates the airport list so that they are now airports within distance to the selected airport
             _airports = getAirportsInRange(_flightplan[_flightplan.length - 1], _distance, filters);
