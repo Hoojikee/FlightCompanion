@@ -73,8 +73,11 @@ function submit() {
     const largeAirports = document.getElementById('largeAirport').checked;
     const closedAirports = document.getElementById('largeAirport').checked;
     const heliports = document.getElementById('largeAirport').checked;
+    const deselectedContinents = getDeselectedContinents();
+    console.log(deselectedContinents);
 
-    var filters = [smallAirports, mediumAirports, largeAirports, closedAirports, heliports];
+    var filters = [smallAirports, mediumAirports, largeAirports, closedAirports, heliports, deselectedContinents];
+    console.log("Test:" + getAirportsInRange("KATL", 600, filters))
 
     //optional inputs
     const selectedDeparture = getAirportData(document.getElementById('selectedDeparture').value);
@@ -268,18 +271,29 @@ function getRandomAircraft() {
     return aircraft[Math.floor(Math.random() * aircraft.length)];
 }
 
-function getAirportsInRange(_airport, _range, filters) {
+function getAirportsInRange(_airport, _range, _filters) {
     var airportsInRange = [];
 
     airports.forEach((item) => {
         const dist = getDistance(_airport, item);
-        if ((filters[0] == true && item[2] === "small_airport") ||
-            (filters[1] == true && item[2] === "medium_airport") ||
-            (filters[2] == true && item[2] === "large_airport") ||
-            (filters[3] == true && item[2] === "closed_airport") ||
-            (filters[4] == true && item[2] === "heliport")) {
-            if (dist <= _range && item != _airport) {
-                airportsInRange.push(item);
+
+        //can probably improve this somehow
+        if ((_filters[0] == true && item[2] === "small_airport") ||
+            (_filters[1] == true && item[2] === "medium_airport") ||
+            (_filters[2] == true && item[2] === "large_airport") ||
+            (_filters[3] == true && item[2] === "closed_airport") ||
+            (_filters[4] == true && item[2] === "heliport")) {
+            if (_filters[5] != null) {
+                if (_filters[5].includes(item[7]) == false) {
+                    if (dist <= _range && item != _airport) {
+                        airportsInRange.push(item);
+                    }
+                }
+            }
+            else {
+                if (dist <= _range && item != _airport) {
+                    airportsInRange.push(item);
+                }
             }
         }
     });
@@ -351,5 +365,32 @@ function getRandomAirportThreshold(_airports, _range, _airport) {
     //else return a random airport from the threshold
     else {
         return airportsInThreshold[Math.floor(Math.random() * airportsInThreshold.length)];
+    }
+}
+
+function getDeselectedContinents() {
+    var checkboxes = document.getElementsByName('continentCheckbox');
+    var checkboxesChecked = [];
+
+    for (var i = 0; i < checkboxes.length; i++) {
+        if (!checkboxes[i].checked) {
+            checkboxesChecked.push(checkboxes[i].id);
+        }
+    }
+    return checkboxesChecked.length > 0 ? checkboxesChecked : null;
+}
+
+function toggleAllCheckboxes() {
+    var checkbox = document.getElementById('toggleAllContinents');
+    var checkboxes = document.getElementsByName('continentCheckbox');
+    if (checkbox.checked) {
+        for (var i = 0; i < checkboxes.length; i++) {
+            checkboxes[i].checked = true;
+        }
+    }
+    else {
+        for (var i = 0; i < checkboxes.length; i++) {
+            checkboxes[i].checked = false;
+        }
     }
 }
